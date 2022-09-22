@@ -25,6 +25,8 @@ class Lexer:
             "false" : Tag.K_FALSE,
             "return": Tag.K_RETURN,
             "while" : Tag.K_WHILE,
+            "if"    : Tag.K_IF,
+            "else"  : Tag.K_ELSE,
         }
 
     def accept_if(self, pred):
