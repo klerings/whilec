@@ -237,6 +237,93 @@ class WhileStmt(Stmt):
             if not self.cond.eval(env): break
             self.body.eval(env)
 
+class IfStmt(Stmt):
+    def __init__(self, loc, cond, body):
+        super().__init__(loc)
+        self.cond = cond
+        self.body = body
+
+    def __str__(self):
+        if EMIT is Emit.WHILE:
+            head = f"if {self.cond} {{\n"
+        elif EMIT is Emit.C:
+            head = f"if ({self.cond}) {{\n"
+        else:
+            head = f"if {self.cond}:\n"
+
+        TAB.indent()
+        body = f"{self.body}"
+        TAB.dedent()
+        tail = "" if EMIT is Emit.PY else f"{TAB}}}"
+        return head + body + tail
+
+    def check(self, sema):
+        cond_ty = self.cond.check(sema)
+        if not same(cond_ty, Tag.K_BOOL):
+            err(self.cond.loc, f"condition of an if statement must be of type `bool` but is of type '{cond_ty}'")
+
+        sema.push()
+        self.body.check(sema)
+        sema.pop()
+
+    def eval(self, env):
+        if self.cond.eval(env):
+            self.body.eval(env)
+         
+class IfElseStmt(Stmt):
+    def __init__(self, loc, cond, body, alt_body):
+        super().__init__(loc)
+        self.cond = cond
+        self.body = body
+        self.alt_body = alt_body
+
+    def __str__(self):
+        if EMIT is Emit.WHILE:
+            head = f"if {self.cond} {{\n"
+        elif EMIT is Emit.C:
+            head = f"if ({self.cond}) {{\n"
+        else:
+            head = f"if {self.cond}:\n"
+
+        TAB.indent()
+        body = f"{self.body}"
+        TAB.dedent()
+        
+        if_tail = "" if EMIT is Emit.PY else f"{TAB}}}"
+        
+        if EMIT is Emit.WHILE:
+            second_head = f"else {{\n"
+        elif EMIT is Emit.C:
+            second_head = f"else {{\n"
+        else:
+            second_head = f"else :\n"
+            
+        TAB.indent()
+        alt_body = f"{self.alt_body}"
+        TAB.dedent()
+        
+        else_tail = "" if EMIT is Emit.PY else f"{TAB}}}"
+        return head + body + if_tail + second_head + alt_body + else_tail
+
+    def check(self, sema):
+        cond_ty = self.cond.check(sema)
+        if not same(cond_ty, Tag.K_BOOL):
+            err(self.cond.loc, f"condition of an if statement must be of type `bool` but is of type '{cond_ty}'")
+
+        sema.push()
+        self.body.check(sema)
+        sema.pop()
+        
+        sema.push()
+        self.alt_body.check(sema)
+        sema.pop()
+
+    def eval(self, env):
+        if self.cond.eval(env):
+            self.body.eval(env)
+        else:
+            self.alt_body.eval(env)
+
 # Expr
 
 class Expr(AST):

@@ -6,6 +6,7 @@ from enum import IntEnum, auto
 
 from while_ast import Prog,                                 \
     DeclStmt, AssignStmt, StmtList, WhileStmt,              \
+    IfStmt, IfElseStmt,                                     \
     BinExpr, UnaryExpr, BoolExpr, LitExpr, SymExpr, ErrExpr
 from lexer import Lexer
 from tok import Tag, Tok
@@ -115,6 +116,8 @@ class Parser:
                 stmts.append(self.parse_assign_stmt())
             elif self.ahead.isa(Tag.K_WHILE):
                 stmts.append(self.parse_while_stmt())
+            elif self.ahead.isa(Tag.K_IF):
+                stmts.append(self.parse_if_else_stmt())
             else:
                 break
 
@@ -145,6 +148,22 @@ class Parser:
         body = self.parse_stmt()
         self.expect(Tag.D_BRACE_R, "while statement")
         return WhileStmt(t.loc(), cond, body)
+
+    def parse_if_else_stmt(self):
+        t    = self.track()
+        self.eat(Tag.K_IF)
+        cond = self.parse_expr("condition of an if statement")
+        self.expect(Tag.D_BRACE_L, "if statement")
+        body = self.parse_stmt()
+        self.expect(Tag.D_BRACE_R, "if statement")
+        if not self.ahead.isa(Tag.K_ELSE):
+            return IfStmt(t.loc(), cond, body)
+        else:
+            self.eat(Tag.K_ELSE)
+            self.expect(Tag.D_BRACE_L, "else statement")
+            alt_body = self.parse_stmt()
+            self.expect(Tag.D_BRACE_R, "else statement")
+            return IfElseStmt(t.loc(), cond, body, alt_body)
 
     # Expr
 
