@@ -1,0 +1,11 @@
+int base = 5;
+int exp = 3;
+
+int res = base;
+
+while exp > 1 {
+    exp = exp -1;
+    res = res*base;
+}
+
+return res;
