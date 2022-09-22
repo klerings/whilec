@@ -1,0 +1,9 @@
+int n = 100;
+int i = 5;
+
+int a = 0;
+
+if i < n {
+    a = i;
+} 
+return a;

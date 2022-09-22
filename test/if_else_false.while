@@ -1,0 +1,11 @@
+int n = 100;
+int i = 543;
+
+int a = 0;
+
+if i < n {
+    a = i;
+} else {
+    a = n;
+}
+return a;
