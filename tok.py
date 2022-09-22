@@ -20,6 +20,8 @@ class Tag(Enum):
     K_FALSE     = auto()
     K_RETURN    = auto()
     K_WHILE     = auto()
+    K_IF        = auto()
+    K_ELSE      = auto()
     # misc
     M_SYM       = auto()
     M_LIT       = auto()
@@ -51,6 +53,8 @@ class Tag(Enum):
         if self is self.K_FALSE:     return "false"
         if self is self.K_RETURN:    return "return"
         if self is self.K_WHILE:     return "while"
+        if self is self.K_IF:        return "if"
+        if self is self.K_ELSE:      return "else"
         if self is self.M_SYM:       return "<identifier>"
         if self is self.M_LIT:       return "<literal>"
         if self is self.M_EOF:       return "<end of file>"
