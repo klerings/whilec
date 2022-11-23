@@ -1,0 +1,3 @@
+(int,bool) t = (3,true);
+
+return t;

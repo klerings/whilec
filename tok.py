@@ -38,6 +38,7 @@ class Tag(Enum):
     T_GE        = auto()
     T_ASSIGN    = auto()
     T_SEMICOLON = auto()
+    T_COMMA     = auto()
 
     def __str__(self):
         if self is self.D_BRACE_L:   return "{"
@@ -69,6 +70,7 @@ class Tag(Enum):
         if self is self.T_GE:        return ">="
         if self is self.T_ASSIGN:    return "="
         if self is self.T_SEMICOLON: return ";"
+        if self is self.T_COMMA:     return ","
         assert False
 
     def is_type(self):

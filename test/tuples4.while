@@ -1,0 +1,5 @@
+(int, bool) a = (3, true);
+int b = a#0;
+
+
+return b;

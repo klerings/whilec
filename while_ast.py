@@ -2,6 +2,7 @@
 The While AST (Abstract Syntax Tree)
 """
 
+from ast import expr
 from enum import Enum, auto
 from tok import Tag
 from err import err, note
@@ -124,6 +125,56 @@ class Prog(AST):
         self.stmt.eval(env)
         print(self.ret.eval(env))
 
+class Type(AST):
+    def __init__(self, loc, type):
+        super().__init__(loc)
+        self.type = type
+    
+    def __eq__(self, other):
+        pass
+    
+    def __ne__(self, other):
+        return not self.type == other.type
+
+class BaseType(Type):
+    def __init__(self, loc, type):
+        super().__init__(loc, type)
+        
+    def __eq__(self, other):
+        if self.type == other.type:
+            return True
+        else:
+            return False
+        
+    def __str__(self):
+        return f"BaseType({self.type})"
+    
+class TupleType(Type):
+    def __init__(self, loc, type):
+        super().__init__(loc, type)
+        
+    def __eq__(self, other):
+        if isinstance(other, TupleType):
+            if len(self.type) != len(other.type):
+                return False
+            for i in range(len(self.type)):
+                if self.type[i] != other.type[i]:
+                    return False
+            return True
+        else:
+            return False
+    
+    def __str__(self):
+        s = "TupleType("
+        for i, t in enumerate(self.type):
+            s += str(t)
+            if i < len(self.type) - 1:
+                s += ","
+        return s + ")"
+
+class ErrType(Type): pass
+
+
 # Stmt
 
 class Stmt(AST): pass
@@ -153,6 +204,7 @@ class DeclStmt(Stmt):
 
     def check(self, sema):
         init_ty = self.init.check(sema)
+        print(self.ty)
         if not same(init_ty, self.ty):
             err(self.loc, f"initialization of declaration statement is of type '{init_ty}' but '{self.sym}' is declared of type '{self.ty}'")
         sema.bind(self.sym, self)
@@ -430,7 +482,7 @@ class BoolExpr(Expr):
         return "true" if self.val else "false"
 
     def check(self, _):
-        self.ty = Tag.K_BOOL
+        self.ty = BaseType(_, Tag.K_BOOL)
         return self.ty
 
     def eval(self, _):
@@ -464,7 +516,7 @@ class LitExpr(Expr):
         return f"{self.val}"
 
     def check(self, _):
-        self.ty = Tag.K_INT
+        self.ty = BaseType(_, Tag.K_INT)
         return self.ty
 
     def eval(self, _):
@@ -476,3 +528,51 @@ class ErrExpr(Expr):
 
     def check(self, _):
         return None
+    
+class TupleExpr(Expr):
+    def __init__(self, loc, exprs):
+        super().__init__(loc)
+        self.exprs = exprs
+        
+    def __str__(self):
+        s = ""
+        for i, e in enumerate(self.exprs):
+            s += str(e)
+            if i < len(self.exprs) - 1:
+                s += ","
+        return s
+    
+    def check(self, _):
+        # get types per exp
+        tt = []
+        for e in self.exprs:
+            if isinstance(e, LitExpr):
+                tt.append(BaseType(_, Tag.K_INT))
+            elif isinstance(e, BoolExpr):
+                tt.append(BaseType(_, Tag.K_BOOL))
+            elif isinstance(e, SymExpr):
+                # todo: handle symexpr (variables) in tuple expression
+                # must be evaluated to their actual type but evaluation
+                # needs environment, unclear, where to get it from
+                #sym_evaluated = e.eval(env)
+                """
+                if isinstance(sym_evaluated, int):
+                    tt.append(BaseType(_, Tag.K_INT))
+                elif isinstance(sym_evaluated, bool):
+                    tt.append(BaseType(_, Tag.K_BOOL))
+                elif isinstance(sym_evaluated, TupleType):
+                    tt.append(sym_evaluated.check())
+                else:
+                """
+                print(f'SymExpr {e} is of problematic type')
+            elif isinstance(e, TupleExpr):
+                tt.append(e.check())
+            else:
+                print(f"{e} is of problematic type")
+        # create tuple type
+        self.ty = TupleType(_, tt)
+        return self.ty
+    
+    def eval(self, _):
+        exprs_evaluated = tuple([e.eval(_) for e in self.exprs])
+        return exprs_evaluated

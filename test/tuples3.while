@@ -1,0 +1,4 @@
+bool c = false;
+(int, bool) a = (3, c);
+
+return a;
