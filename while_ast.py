@@ -122,8 +122,8 @@ class Prog(AST):
     def eval(self):
         assert EMIT is Emit.EVAL
         env = {}
+        print(type(self.stmt))
         self.stmt.eval(env)
-        print(self.ret.eval(env))
 
 class Type(AST):
     def __init__(self, loc, type):
@@ -141,6 +141,9 @@ class BaseType(Type):
         super().__init__(loc, type)
         
     def __eq__(self, other):
+        print(other)
+        print(self.type)
+        # if isinstance(other, TupleType)
         if self.type == other.type:
             return True
         else:
@@ -203,8 +206,23 @@ class DeclStmt(Stmt):
         return f"{self.ty} {name(self)} = {self.init};"
 
     def check(self, sema):
+        print('check start')
+        print(self.init)
+        if same(type(self.init), BinExpr):
+            print('left type')
+            print(self.init.lhs)
+            evaluated_tuple_var = self.init.lhs.eval()
+            print(evaluated_tuple_var)
+
+        print('after self_init')
         init_ty = self.init.check(sema)
+        print()
+        # print(init_ty.lhs)
+        print(init_ty)
+        print(type(init_ty))
         print(self.ty)
+        print('check end')
+
         if not same(init_ty, self.ty):
             err(self.loc, f"initialization of declaration statement is of type '{init_ty}' but '{self.sym}' is declared of type '{self.ty}'")
         sema.bind(self.sym, self)
@@ -404,8 +422,13 @@ class BinExpr(Expr):
     def check(self, sema):
         l_ty  = self.lhs.check(sema)
         r_ty  = self.rhs.check(sema)
+        print('left + right')
+        print(l_ty)
 
-        if self.op.is_arith():
+        if self.op.is_select():
+            expected_ty = TupleType
+            result_ty   = TupleType # | Tag.K_INT | Tag.K_BOOL
+        elif self.op.is_arith():
             expected_ty = Tag.K_INT
             result_ty   = Tag.K_INT
         elif self.op.is_rel():
@@ -417,27 +440,36 @@ class BinExpr(Expr):
         else:
             assert False
 
-        if not same(l_ty, expected_ty):
-            err(self.lhs.loc, f"left-hand side of operator '{self.op}' must be of type '{expected_ty}' but is of type '{l_ty}'")
-        if not same(r_ty, expected_ty):
-            err(self.rhs.loc, f"right-hand side of operator '{self.op}' must be of type '{expected_ty}' but is of type '{r_ty}'")
+        if type(l_ty) == TupleType:
+            if not isinstance(l_ty, expected_ty):
+                err(self.lhs.loc, f"left-hand side of operator '{self.op}' must be of type '{expected_ty}' but is of type '{l_ty}'")
+            if not same(r_ty, BaseType('', Tag.K_INT)):
+                err(self.rhs.loc, f"right-hand side of operator '{self.op}' must be of type '{expected_ty}' but is of type '{r_ty}'")
+
+        else:
+            if not same(l_ty, expected_ty) or not (type(l_ty) == TupleType and isinstance(l_ty, expected_ty)):
+                err(self.lhs.loc, f"left-hand side of operator '{self.op}' must be of type '{expected_ty}' but is of type '{l_ty}'")
+            if not same(r_ty, expected_ty):
+                err(self.rhs.loc, f"right-hand side of operator '{self.op}' must be of type '{expected_ty}' but is of type '{r_ty}'")
 
         return result_ty
 
     def eval(self, env):
+        print(env)
         l = self.lhs.eval(env)
         r = self.rhs.eval(env)
-        if self.op is Tag.T_ADD: return l +  r
-        if self.op is Tag.T_SUB: return l -  r
-        if self.op is Tag.T_MUL: return l *  r
-        if self.op is Tag.K_AND: return l &  r
-        if self.op is Tag.K_OR : return l |  r
-        if self.op is Tag.T_EQ : return l == r
-        if self.op is Tag.T_NE : return l != r
-        if self.op is Tag.T_LT : return l <  r
-        if self.op is Tag.T_LE : return l <= r
-        if self.op is Tag.T_GT : return l >  r
-        if self.op is Tag.T_GE : return l >= r
+        if self.op is Tag.T_ADD   : return l +  r
+        if self.op is Tag.T_SUB   : return l -  r
+        if self.op is Tag.T_MUL   : return l *  r
+        if self.op is Tag.K_AND   : return l &  r
+        if self.op is Tag.K_OR    : return l |  r
+        if self.op is Tag.T_EQ    : return l == r
+        if self.op is Tag.T_NE    : return l != r
+        if self.op is Tag.T_LT    : return l <  r
+        if self.op is Tag.T_LE    : return l <= r
+        if self.op is Tag.T_GT    : return l >  r
+        if self.op is Tag.T_GE    : return l >= r
+        if self.op is Tag.T_SELECT: return l[r]
         assert False
 
 class UnaryExpr(Expr):
@@ -498,13 +530,19 @@ class SymExpr(Expr):
         return f"{name(self.decl, self.sym)}"
 
     def check(self, sema):
+        print('check')
         if (decl := sema.find(self.sym)) is not None:
+            print(decl)
+            print('end of decl')
             self.decl = decl
             self.ty   = decl.ty
             return self.ty
         return None
 
     def eval(self, env):
+        print('syexpr')
+        print(self.decl)
+        print(env)
         return env[name(self.decl)]
 
 class LitExpr(Expr):
@@ -541,11 +579,21 @@ class TupleExpr(Expr):
             if i < len(self.exprs) - 1:
                 s += ","
         return s
+
+    def select(self, pos):
+        if pos < len(self.exprs):
+            return self.exprs[pos]
+        else:
+            raise ErrExpr
     
     def check(self, _):
         # get types per exp
         tt = []
+        print((', '.join(str(e) for e in self.exprs) + ' are self.exprs'))
         for e in self.exprs:
+            print('gonna')
+            print(e, type(e))
+            print('stap')
             if isinstance(e, LitExpr):
                 tt.append(BaseType(_, Tag.K_INT))
             elif isinstance(e, BoolExpr):
@@ -554,7 +602,7 @@ class TupleExpr(Expr):
                 # todo: handle symexpr (variables) in tuple expression
                 # must be evaluated to their actual type but evaluation
                 # needs environment, unclear, where to get it from
-                #sym_evaluated = e.eval(env)
+                # sym_evaluated = e.eval(env)
                 """
                 if isinstance(sym_evaluated, int):
                     tt.append(BaseType(_, Tag.K_INT))
@@ -564,6 +612,7 @@ class TupleExpr(Expr):
                     tt.append(sym_evaluated.check())
                 else:
                 """
+                # tt.append(BaseType(_, Tag.K_BOOL))
                 print(f'SymExpr {e} is of problematic type')
             elif isinstance(e, TupleExpr):
                 tt.append(e.check())
@@ -571,8 +620,18 @@ class TupleExpr(Expr):
                 print(f"{e} is of problematic type")
         # create tuple type
         self.ty = TupleType(_, tt)
+        print(self.ty)
+        print('end')
         return self.ty
     
     def eval(self, _):
+        # env = {}
+        # result_tuple = tuple()
+        # for e in self.exprs:
+        #     if isinstance(e, SymExpr):
+        #         evaluated = e.eval(_, env)
+        #     else:
+        #         evaluated = e.eval(_)
+        #     result_tuple += (evaluated,)
         exprs_evaluated = tuple([e.eval(_) for e in self.exprs])
         return exprs_evaluated

@@ -39,6 +39,7 @@ class Tag(Enum):
     T_ASSIGN    = auto()
     T_SEMICOLON = auto()
     T_COMMA     = auto()
+    T_SELECT    = auto()
 
     def __str__(self):
         if self is self.D_BRACE_L:   return "{"
@@ -71,6 +72,8 @@ class Tag(Enum):
         if self is self.T_ASSIGN:    return "="
         if self is self.T_SEMICOLON: return ";"
         if self is self.T_COMMA:     return ","
+        if self is self.T_SELECT:    return "#"
+        print(self is self.T_SELECT)
         assert False
 
     def is_type(self):
@@ -87,7 +90,8 @@ class Tag(Enum):
             or self is self.T_GT  \
             or self is self.T_GE  \
             or self is self.K_AND \
-            or self is self.K_OR
+            or self is self.K_OR \
+            or self is self.T_SELECT
 
     def is_arith(self):
         return self is self.T_ADD \
@@ -104,7 +108,11 @@ class Tag(Enum):
 
     def is_logic(self): # binary only - K_not is its own thing
         return self is self.K_AND \
-            or self is self.K_OR
+            or self is self.K_OR \
+            or self is self.T_SELECT
+
+    def is_select(self):
+        return self is self.T_SELECT
 
     def is_unary(self):
         return self is self.T_ADD \

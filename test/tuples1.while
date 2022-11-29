@@ -1,3 +1,4 @@
 (int,bool) t = (3,true);
 
-return t;
+bool m = t#1;
+return m;

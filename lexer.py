@@ -61,7 +61,7 @@ class Lexer:
             self.loc.finis = deepcopy(self.peek)
             self.str = ""
 
-            if self.accept("" ): return Tok(self.loc, Tag.M_EOF)
+            if self.accept("") : return Tok(self.loc, Tag.M_EOF)
             if self.accept_if(lambda char : char in string.whitespace):
                 continue
             if self.accept("{"): return Tok(self.loc, Tag.D_BRACE_L)
@@ -73,6 +73,7 @@ class Lexer:
             if self.accept("*"): return Tok(self.loc, Tag.T_MUL)
             if self.accept(";"): return Tok(self.loc, Tag.T_SEMICOLON)
             if self.accept(","): return Tok(self.loc, Tag.T_COMMA)
+            if self.accept("#"): return Tok(self.loc, Tag.T_SELECT)
 
             if self.accept("="):
                 if self.accept("="): return Tok(self.loc, Tag.T_EQ)

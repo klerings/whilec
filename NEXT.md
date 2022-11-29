@@ -1,5 +1,7 @@
 # Current Status (Working):
 - declaration of simple tuples works (test/tuples1.while);
+- main issue is the env variable for the eval of Declared Tuple Variables -> we need to add our tupleExor.expr to env at some point
+- also consider: when looking up variables from env, use deepcopies
 
 # What is not working
 - nested tuples cannot be parsed yet (test/tuples2.while) -> fix "parse_tuple_type()" in parser.py to correctly track location

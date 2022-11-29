@@ -42,6 +42,7 @@ class Parser:
             Tag.T_ADD: [Prec.ADD, Prec.MUL],
             Tag.T_SUB: [Prec.ADD, Prec.MUL],
             Tag.T_MUL: [Prec.MUL, Prec.UNARY],
+            Tag.T_SELECT: [Prec.ADD, Prec.MUL],
         }
 
     # helpers to track loc
@@ -151,7 +152,7 @@ class Parser:
         sym  = self.parse_sym("identifier of a declaration statement")
         self.expect(Tag.T_ASSIGN, "declaration statement")
         if is_tuple:
-            expr = self.parse_tuple_expr("righ-hand side of tuple declaration statement")
+            expr = self.parse_tuple_expr("right-hand side of tuple declaration statement")
         else:
             expr = self.parse_expr("right-hand side of basetype declaration statement")
         self.expect(Tag.T_SEMICOLON, "end of a declaration statement")
@@ -227,7 +228,7 @@ class Parser:
         print(f'function call parse-tuple-expr with {types_in_tuple}')
         #comma_count = 0
         next_token = self.lex()
-        while (not next_token.isa(Tag.D_PAREN_R)):
+        while not next_token.isa(Tag.D_PAREN_R):
             print(f'next token before check: {next_token} ({t.loc()})')
             if next_token.is_type():
                 types_in_tuple.append(BaseType(next_token.loc, next_token.tag))
@@ -238,8 +239,7 @@ class Parser:
         ty = TupleType(loc=t.loc(), type=types_in_tuple)
         print(f'function returns {ty}')
         return ty
-        
-    
+
     def parse_tuple_expr(self, ctxt):
         """parses the right side of tuple declarations or assignments, can be used recursively for tuples in tuples"""
         t = self.track()
@@ -247,18 +247,18 @@ class Parser:
         exprs = []
         comma_count = 0
         next_token = self.lex()
-        while(not self.ahead.isa(Tag.D_PAREN_R)):
+        while not self.ahead.isa(Tag.D_PAREN_R):
             expr = self.parse_expr()
             exprs.append(expr)
             if (tok := self.accept(Tag.T_COMMA)) is not None:
                 comma_count += 1
         
-        if (len(exprs) == 1 and comma_count == 1) or (len(exprs) > 1 and len(exprs) == comma_count +1):
+        if (len(exprs) == 1 and comma_count == 1) or (len(exprs) > 1 and len(exprs) == comma_count + 1):
             self.expect(Tag.D_PAREN_R, "tuple expression")
             return TupleExpr(t.loc(), exprs)
-        elif (len(exprs) > 1 and len(exprs) == comma_count):
-            #todo raise error
+        elif len(exprs) > 1 and len(exprs) == comma_count:
+            # todo raise error
             print("error: number of expressions doesnt match number of commas")
         else:
             self.expect(Tag.D_PAREN_R, "parenthesized expression")
-            return exprs[0] 
+            return exprs[0]
