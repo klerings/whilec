@@ -142,7 +142,6 @@ class Parser:
             is_tuple = True  
             left_par = self.lex().tag          
             ty = self.parse_tuple_type(t)
-            print(f'ty: {ty}')
                 
         # BASE TYPE declaration
         else:
@@ -225,19 +224,19 @@ class Parser:
     def parse_tuple_type(self, t, types_in_tuple=[]):
         """parses the left side of tuple declarations to find the tupletype, can be used recursively"""
         #t    = self.track()
-        print(f'function call parse-tuple-expr with {types_in_tuple}')
+        #print(f'function call parse-tuple-expr with {types_in_tuple}')
         #comma_count = 0
         next_token = self.lex()
         while not next_token.isa(Tag.D_PAREN_R):
-            print(f'next token before check: {next_token} ({t.loc()})')
+            #print(f'next token before check: {next_token} ({t.loc()})')
             if next_token.is_type():
                 types_in_tuple.append(BaseType(next_token.loc, next_token.tag))
             elif next_token.isa(Tag.D_PAREN_L):
                 types_in_tuple.append(self.parse_tuple_type(t, types_in_tuple))
-            print(f'next token after check: {next_token} ({next_token.isa(Tag.D_PAREN_R)}) ({t.loc()})')
+            #print(f'next token after check: {next_token} ({next_token.isa(Tag.D_PAREN_R)}) ({t.loc()})')
             next_token = self.lex()
         ty = TupleType(loc=t.loc(), type=types_in_tuple)
-        print(f'function returns {ty}')
+        #print(f'function returns {ty}')
         return ty
 
     def parse_tuple_expr(self, ctxt):
