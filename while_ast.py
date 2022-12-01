@@ -211,16 +211,22 @@ class DeclStmt(Stmt):
         if same(type(self.init), BinExpr):
             print('left type')
             print(self.init.lhs)
-            evaluated_tuple_var = self.init.lhs.eval()
-            print(evaluated_tuple_var)
-
-        print('after self_init')
-        init_ty = self.init.check(sema)
-        print()
-        # print(init_ty.lhs)
-        print(init_ty)
-        print(type(init_ty))
-        print(self.ty)
+            print(f'type of sym that is looked up: {type(self.init.lhs.sym)}')
+            evaluated_tuple_var = sema.find(self.init.lhs.sym)
+            #print(self.init.lhs)
+            #evaluated_tuple_var = self.init.lhs.eval()
+            print(f'evaluated_tuple_var: {evaluated_tuple_var}')
+            new_value = evaluated_tuple_var.init.select(self.init.rhs.eval(None))
+            init_ty = new_value.check(None)
+            print(f'new value: {new_value} (type: {type(new_value)})')
+            
+        else:
+        #print('after self_init')
+            init_ty = self.init.check(sema)
+        
+        #print(init_ty)
+        #print(type(init_ty))
+        #print(self.ty)
         print('check end')
 
         if not same(init_ty, self.ty):
@@ -228,8 +234,10 @@ class DeclStmt(Stmt):
         sema.bind(self.sym, self)
 
     def eval(self, env):
+        print(f'env: {env}')
         val = self.init.eval(env)
         env[name(self)] = val
+        print(f'env after: {env}')
 
 class AssignStmt(Stmt):
     def __init__(self, loc, sym, init):
@@ -246,6 +254,8 @@ class AssignStmt(Stmt):
     def check(self, sema):
         init_ty = self.init.check(sema)
         self.decl = sema.find(self.sym)
+        print(f'type of sym that is looked up: {type(self.sym)}')
+        print(f'found sym: {self.decl}')
         if not same(init_ty, self.decl.ty):
             err(self.loc, f"right-hand side of asssignment statement is of type '{init_ty}' but '{self.decl.sym}' is declared of type '{self.decl.ty}'")
             note(self.decl.loc, "previous declaration here")
@@ -253,6 +263,7 @@ class AssignStmt(Stmt):
     def eval(self, env):
         val = self.init.eval(env)
         env[name(self.decl)] = val
+        print(f'env after assign: {env}')
 
 class StmtList(Stmt):
     def __init__(self, loc, stmts):
@@ -633,5 +644,5 @@ class TupleExpr(Expr):
         #     else:
         #         evaluated = e.eval(_)
         #     result_tuple += (evaluated,)
-        exprs_evaluated = tuple([e.eval(_) for e in self.exprs])
+        exprs_evaluated = [e.eval(_) for e in self.exprs]
         return exprs_evaluated
