@@ -129,7 +129,10 @@ class Parser:
         t    = self.track()
         sym  = self.eat(Tag.M_SYM)
         self.expect(Tag.T_ASSIGN, "assignment statement")
-        expr = self.parse_expr("right-hand side of an assignment statement")
+        if sym.is_type():
+            expr = self.parse_expr("right-hand side of an assignment statement")
+        else:
+            expr = self.parse_tuple_expr("right-hand side of a tuple assignment statement")
         self.expect(Tag.T_SEMICOLON, "end of an assignment statement")
         return AssignStmt(t.loc(), sym, expr)
 
