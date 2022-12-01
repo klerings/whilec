@@ -1,4 +1,3 @@
-(int,(bool,(int,int))) t = (3,(true,(4,5)));
-
+(int,(bool,int)) t = (3,(true,5));
 
 return t;

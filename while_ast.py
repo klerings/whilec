@@ -616,7 +616,7 @@ class TupleExpr(Expr):
                 #print(f'sym evaluated: {sym_evaluated}')
                 tt.append(e.check(_))
             elif isinstance(e, TupleExpr):
-                tt.append(e.check())
+                tt.append(e.check(_))
             else:
                 print(f"{e} is of problematic type")
         # create tuple type

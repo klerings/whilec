@@ -132,8 +132,12 @@ class Parser:
         if sym.is_type():
             expr = self.parse_expr("right-hand side of an assignment statement")
         else:
-            expr = self.parse_tuple_expr("right-hand side of a tuple assignment statement")
+            print("before assignment statement")
+            expr = self.parse_tuple_expr()
+            print("test")
+            print(f"expr: {expr}")
         self.expect(Tag.T_SEMICOLON, "end of an assignment statement")
+        print(f"assignment: {sym} - {expr}")
         return AssignStmt(t.loc(), sym, expr)
 
     def parse_decl_stmt(self):
@@ -154,7 +158,8 @@ class Parser:
         sym  = self.parse_sym("identifier of a declaration statement")
         self.expect(Tag.T_ASSIGN, "declaration statement")
         if is_tuple:
-            expr = self.parse_tuple_expr("right-hand side of tuple declaration statement")
+            left_par_of_t_exp = self.lex()
+            expr = self.parse_tuple_expr()
         else:
             expr = self.parse_expr("right-hand side of basetype declaration statement")
         self.expect(Tag.T_SEMICOLON, "end of a declaration statement")
@@ -226,41 +231,43 @@ class Parser:
 
     def parse_tuple_type(self, t, types_in_tuple=[]):
         """parses the left side of tuple declarations to find the tupletype, can be used recursively"""
-        #t    = self.track()
-        #print(f'function call parse-tuple-expr with {types_in_tuple}')
-        #comma_count = 0
         next_token = self.lex()
         while not next_token.isa(Tag.D_PAREN_R):
-            #print(f'next token before check: {next_token} ({t.loc()})')
             if next_token.is_type():
                 types_in_tuple.append(BaseType(next_token.loc, next_token.tag))
             elif next_token.isa(Tag.D_PAREN_L):
-                types_in_tuple.append(self.parse_tuple_type(t, types_in_tuple))
-            #print(f'next token after check: {next_token} ({next_token.isa(Tag.D_PAREN_R)}) ({t.loc()})')
+                types_in_tuple.append(self.parse_tuple_type(t, []))
             next_token = self.lex()
         ty = TupleType(loc=t.loc(), type=types_in_tuple)
-        #print(f'function returns {ty}')
         return ty
 
-    def parse_tuple_expr(self, ctxt):
+    def parse_tuple_expr(self, expr_in_tuple=[]):
         """parses the right side of tuple declarations or assignments, can be used recursively for tuples in tuples"""
-        t = self.track()
-
+        t    = self.track()
+        
         exprs = []
         comma_count = 0
         next_token = self.lex()
-        while not self.ahead.isa(Tag.D_PAREN_R):
-            expr = self.parse_expr()
-            exprs.append(expr)
-            if (tok := self.accept(Tag.T_COMMA)) is not None:
+        while not next_token.isa(Tag.D_PAREN_R):
+            
+            if next_token.isa(Tag.K_FALSE): 
+                exprs.append(BoolExpr(next_token.loc, False))
+            if next_token.isa(Tag.K_TRUE): 
+                exprs.append(BoolExpr(next_token.loc, True))
+            if next_token.isa(Tag.M_SYM):
+                exprs.append(SymExpr(next_token.loc, next_token))
+            if next_token.isa(Tag.M_LIT): 
+                exprs.append(LitExpr (next_token.loc, next_token.val))
+            
+            if next_token.isa(Tag.T_COMMA):
                 comma_count += 1
+            elif next_token.isa(Tag.D_PAREN_L):
+                exprs.append(self.parse_tuple_expr([]))
+            
+            next_token = self.lex()
         
-        if (len(exprs) == 1 and comma_count == 1) or (len(exprs) > 1 and len(exprs) == comma_count + 1):
-            self.expect(Tag.D_PAREN_R, "tuple expression")
-            return TupleExpr(t.loc(), exprs)
-        elif len(exprs) > 1 and len(exprs) == comma_count:
-            # todo raise error
-            print("error: number of expressions doesnt match number of commas")
-        else:
-            self.expect(Tag.D_PAREN_R, "parenthesized expression")
-            return exprs[0]
+        print(f"returns: {TupleExpr(t.loc(), exprs)}")
+        return TupleExpr(t.loc(), exprs)
+        
+        
+    
