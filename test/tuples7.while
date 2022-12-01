@@ -1,0 +1,2 @@
+(int,) t = (3,);
+return t;
