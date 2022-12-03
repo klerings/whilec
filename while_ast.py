@@ -61,6 +61,7 @@ class Sema:
             return False
 
         curr_scope[tok.sym] = decl
+        print("declaration in sema happening")
         return True
 
 class Emit(Enum):
@@ -117,12 +118,14 @@ class Prog(AST):
     def check(self):
         sema = Sema()
         self.stmt.check(sema)
+        print(f'------------\nstart check of return expr: {self.ret}')
         self.ret.check(sema)
+        print(f'end check of return expr: {self.ret}\n------------')
 
     def eval(self):
         assert EMIT is Emit.EVAL
         env = {}
-        #print(type(self.stmt))
+        print(f'evaluating stmt: {self.stmt} ({type(self.stmt)}')
         self.stmt.eval(env)
 
 class Type(AST):
@@ -206,28 +209,22 @@ class DeclStmt(Stmt):
         return f"{self.ty} {name(self)} = {self.init};"
 
     def check(self, sema):
-        print('check start')
-        print(self.init)
+        print('declStmt check function')
+        # declaration including access of tuple
         if same(type(self.init), BinExpr):
-            #print('left type')
-            #print(self.init.lhs)
-            #print(f'type of sym that is looked up: {type(self.init.lhs.sym)}')
-            evaluated_tuple_var = sema.find(self.init.lhs.sym)
-            #print(self.init.lhs)
-            #evaluated_tuple_var = self.init.lhs.eval()
-            #print(f'evaluated_tuple_var: {evaluated_tuple_var}')
-            new_value = evaluated_tuple_var.init.select(self.init.rhs.eval(None))
-            init_ty = new_value.check(None)
-            #print(f'new value: {new_value} (type: {type(new_value)})')
+            tuple_expr = self.init.lhs
+            projector = self.init.rhs
+            # call check on TupleExpr to add tuple declaration to env
+            init_ty_lhs = tuple_expr.check(sema)
+            # resolve tuple variable to its value
+            evaluated_tuple_var = sema.find(tuple_expr.sym)
             
-        else:
-        #print('after self_init')
-            init_ty = self.init.check(sema)
+            projection = evaluated_tuple_var.init.select(projector.eval(None))
+            init_ty = projection.check(sema)
         
-        #print(init_ty)
-        #print(type(init_ty))
-        #print(self.ty)
-        #print('check end')
+        # normal declaration
+        else:
+            init_ty = self.init.check(sema)
 
         if not same(init_ty, self.ty):
             err(self.loc, f"initialization of declaration statement is of type '{init_ty}' but '{self.sym}' is declared of type '{self.ty}'")
@@ -235,7 +232,9 @@ class DeclStmt(Stmt):
 
     def eval(self, env):
         #print(f'env: {env}')
+        print(f'init: {self.init} ({type(self.init)})')
         val = self.init.eval(env)
+        print(f'val: {val}')
         env[name(self)] = val
         #print(f'env after: {env}')
 
@@ -252,6 +251,7 @@ class AssignStmt(Stmt):
         return f"{name(self.decl, self.sym)} = {self.init};"
 
     def check(self, sema):
+        print("assignment check function")
         init_ty = self.init.check(sema)
         self.decl = sema.find(self.sym)
         #print(f'type of sym that is looked up: {type(self.sym)}')
@@ -278,11 +278,15 @@ class StmtList(Stmt):
 
     def check(self, sema):
         for stmt in self.stmts:
+            print(f'--------------\nstart check of stmt: {stmt}')
             stmt.check(sema)
+            print(f'end check of stmt: {stmt}\n----------')
 
     def eval(self, env):
         for stmt in self.stmts:
+            print(f'---------------\nstart eval of stmt: {stmt}')
             stmt.eval(env)
+            print(f'end eval of stmt: {stmt}\n----------')
 
 class WhileStmt(Stmt):
     def __init__(self, loc, cond, body):
@@ -467,8 +471,10 @@ class BinExpr(Expr):
 
     def eval(self, env):
         #print(env)
+        print(f'inside eval of binexpr lhs: {self.lhs} ({type(self.lhs)} (decl: {self.lhs.decl}), loc: {self.loc}')
         l = self.lhs.eval(env)
         r = self.rhs.eval(env)
+        print(f'left of bin expr: {l}')
         if self.op is Tag.T_ADD   : return l +  r
         if self.op is Tag.T_SUB   : return l -  r
         if self.op is Tag.T_MUL   : return l *  r
@@ -541,19 +547,19 @@ class SymExpr(Expr):
         return f"{name(self.decl, self.sym)}"
 
     def check(self, sema):
-        #print('check')
         if (decl := sema.find(self.sym)) is not None:
             #print(decl)
-            #print('end of decl')
+            print(f'decl for {self.sym} -> {decl}')
             self.decl = decl
+            print(f"decl of {self.sym} now set to: {self.decl} ({name(self.decl)}), loc: {self.loc}")
             self.ty   = decl.ty
             return self.ty
         return None
 
     def eval(self, env):
         #print('syexpr')
-        #print(self.decl)
-        #print(env)
+        print(f'self.decl: {self.decl} ({self.sym})')
+        print(env)
         return env[name(self.decl)]
 
 class LitExpr(Expr):
@@ -634,5 +640,6 @@ class TupleExpr(Expr):
         #     else:
         #         evaluated = e.eval(_)
         #     result_tuple += (evaluated,)
+        print("is here trouble?")
         exprs_evaluated = [e.eval(_) for e in self.exprs]
         return exprs_evaluated

@@ -195,6 +195,10 @@ class Parser:
     def parse_expr(self, ctxt = None, cur_prec = Prec.BOT):
         t   = self.track()
         lhs = self.parse_primary_or_unary_expr(ctxt)
+        for_print = "" 
+        if type(lhs) == SymExpr:
+            for_print = lhs.decl
+        print(f'parse_expr: lhs -> {lhs} (type: {type(lhs)}) with decl: {for_print} with loc: {lhs.loc}')
 
         while self.ahead.is_bin_op():
             (l_prec, r_prec) = self.prec[self.ahead.tag]
