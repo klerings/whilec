@@ -61,7 +61,6 @@ class Sema:
             return False
 
         curr_scope[tok.sym] = decl
-        print("declaration in sema happening")
         return True
 
 class Emit(Enum):
@@ -118,14 +117,11 @@ class Prog(AST):
     def check(self):
         sema = Sema()
         self.stmt.check(sema)
-        print(f'------------\nstart check of return expr: {self.ret}')
         self.ret.check(sema)
-        print(f'end check of return expr: {self.ret}\n------------')
 
     def eval(self):
         assert EMIT is Emit.EVAL
         env = {}
-        print(f'evaluating stmt: {self.stmt} ({type(self.stmt)}')
         self.stmt.eval(env)
 
 class Type(AST):
@@ -144,9 +140,6 @@ class BaseType(Type):
         super().__init__(loc, type)
         
     def __eq__(self, other):
-        #print(other)
-        #print(self.type)
-        # if isinstance(other, TupleType)
         if self.type == other.type:
             return True
         else:
@@ -209,7 +202,6 @@ class DeclStmt(Stmt):
         return f"{self.ty} {name(self)} = {self.init};"
 
     def check(self, sema):
-        print('declStmt check function')
         # declaration including access of tuple
         if same(type(self.init), BinExpr):
             tuple_expr = self.init.lhs
@@ -231,12 +223,8 @@ class DeclStmt(Stmt):
         sema.bind(self.sym, self)
 
     def eval(self, env):
-        #print(f'env: {env}')
-        print(f'init: {self.init} ({type(self.init)})')
         val = self.init.eval(env)
-        print(f'val: {val}')
         env[name(self)] = val
-        #print(f'env after: {env}')
 
 class AssignStmt(Stmt):
     def __init__(self, loc, sym, init):
@@ -251,11 +239,8 @@ class AssignStmt(Stmt):
         return f"{name(self.decl, self.sym)} = {self.init};"
 
     def check(self, sema):
-        print("assignment check function")
         init_ty = self.init.check(sema)
         self.decl = sema.find(self.sym)
-        #print(f'type of sym that is looked up: {type(self.sym)}')
-        #print(f'found sym: {self.decl}')
         if not same(init_ty, self.decl.ty):
             err(self.loc, f"right-hand side of asssignment statement is of type '{init_ty}' but '{self.decl.sym}' is declared of type '{self.decl.ty}'")
             note(self.decl.loc, "previous declaration here")
@@ -263,7 +248,6 @@ class AssignStmt(Stmt):
     def eval(self, env):
         val = self.init.eval(env)
         env[name(self.decl)] = val
-        #print(f'env after assign: {env}')
 
 class StmtList(Stmt):
     def __init__(self, loc, stmts):
@@ -278,15 +262,11 @@ class StmtList(Stmt):
 
     def check(self, sema):
         for stmt in self.stmts:
-            print(f'--------------\nstart check of stmt: {stmt}')
             stmt.check(sema)
-            print(f'end check of stmt: {stmt}\n----------')
 
     def eval(self, env):
         for stmt in self.stmts:
-            print(f'---------------\nstart eval of stmt: {stmt}')
             stmt.eval(env)
-            print(f'end eval of stmt: {stmt}\n----------')
 
 class WhileStmt(Stmt):
     def __init__(self, loc, cond, body):
@@ -437,8 +417,6 @@ class BinExpr(Expr):
     def check(self, sema):
         l_ty  = self.lhs.check(sema)
         r_ty  = self.rhs.check(sema)
-        #print('left + right')
-        #print(l_ty)
 
         if self.op.is_select():
             expected_ty = TupleType
@@ -470,11 +448,8 @@ class BinExpr(Expr):
         return result_ty
 
     def eval(self, env):
-        #print(env)
-        print(f'inside eval of binexpr lhs: {self.lhs} ({type(self.lhs)} (decl: {self.lhs.decl}), loc: {self.loc}')
         l = self.lhs.eval(env)
         r = self.rhs.eval(env)
-        print(f'left of bin expr: {l}')
         if self.op is Tag.T_ADD   : return l +  r
         if self.op is Tag.T_SUB   : return l -  r
         if self.op is Tag.T_MUL   : return l *  r
@@ -548,18 +523,12 @@ class SymExpr(Expr):
 
     def check(self, sema):
         if (decl := sema.find(self.sym)) is not None:
-            #print(decl)
-            print(f'decl for {self.sym} -> {decl}')
             self.decl = decl
-            print(f"decl of {self.sym} now set to: {self.decl} ({name(self.decl)}), loc: {self.loc}")
             self.ty   = decl.ty
             return self.ty
         return None
 
     def eval(self, env):
-        #print('syexpr')
-        print(f'self.decl: {self.decl} ({self.sym})')
-        print(env)
         return env[name(self.decl)]
 
 class LitExpr(Expr):
@@ -606,20 +575,12 @@ class TupleExpr(Expr):
     def check(self, _):
         # get types per exp
         tt = []
-        #print((', '.join(str(e) for e in self.exprs) + ' are self.exprs'))
         for e in self.exprs:
             if isinstance(e, LitExpr):
                 tt.append(BaseType(_, Tag.K_INT))
             elif isinstance(e, BoolExpr):
                 tt.append(BaseType(_, Tag.K_BOOL))
             elif isinstance(e, SymExpr):
-                # todo: handle symexpr (variables) in tuple expression
-                # must be evaluated to their actual type but evaluation
-                # needs environment, unclear, where to get it from
-                # sym_evaluated = e.eval(_)
-                #print(f'sym expr type: {type(e)}')
-                #sym_ty_evaluated = e.check(_)
-                #print(f'sym evaluated: {sym_evaluated}')
                 tt.append(e.check(_))
             elif isinstance(e, TupleExpr):
                 tt.append(e.check(_))
@@ -627,19 +588,8 @@ class TupleExpr(Expr):
                 print(f"{e} is of problematic type")
         # create tuple type
         self.ty = TupleType(_, tt)
-        #print(self.ty)
-        #print('end')
         return self.ty
     
     def eval(self, _):
-        # env = {}
-        # result_tuple = tuple()
-        # for e in self.exprs:
-        #     if isinstance(e, SymExpr):
-        #         evaluated = e.eval(_, env)
-        #     else:
-        #         evaluated = e.eval(_)
-        #     result_tuple += (evaluated,)
-        print("is here trouble?")
         exprs_evaluated = [e.eval(_) for e in self.exprs]
         return exprs_evaluated

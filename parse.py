@@ -129,15 +129,13 @@ class Parser:
         t    = self.track()
         sym  = self.eat(Tag.M_SYM)
         self.expect(Tag.T_ASSIGN, "assignment statement")
-        if sym.is_type():
-            expr = self.parse_expr("right-hand side of an assignment statement")
-        else:
-            print("before assignment statement")
+        if self.ahead.isa(Tag.D_PAREN_L):
+            left_par = self.lex().tag          
             expr = self.parse_tuple_expr()
-            print("test")
-            print(f"expr: {expr}")
+        else:
+            expr = self.parse_expr("right-hand side of an assignment statement")
+        
         self.expect(Tag.T_SEMICOLON, "end of an assignment statement")
-        print(f"assignment: {sym} - {expr}")
         return AssignStmt(t.loc(), sym, expr)
 
     def parse_decl_stmt(self):
@@ -195,11 +193,7 @@ class Parser:
     def parse_expr(self, ctxt = None, cur_prec = Prec.BOT):
         t   = self.track()
         lhs = self.parse_primary_or_unary_expr(ctxt)
-        for_print = "" 
-        if type(lhs) == SymExpr:
-            for_print = lhs.decl
-        print(f'parse_expr: lhs -> {lhs} (type: {type(lhs)}) with decl: {for_print} with loc: {lhs.loc}')
-
+        
         while self.ahead.is_bin_op():
             (l_prec, r_prec) = self.prec[self.ahead.tag]
             if l_prec < cur_prec:
@@ -245,15 +239,13 @@ class Parser:
         ty = TupleType(loc=t.loc(), type=types_in_tuple)
         return ty
 
-    def parse_tuple_expr(self, expr_in_tuple=[]):
+    def parse_tuple_expr(self):
         """parses the right side of tuple declarations or assignments, can be used recursively for tuples in tuples"""
         t    = self.track()
-        
         exprs = []
         comma_count = 0
         next_token = self.lex()
         while not next_token.isa(Tag.D_PAREN_R):
-            
             if next_token.isa(Tag.K_FALSE): 
                 exprs.append(BoolExpr(next_token.loc, False))
             if next_token.isa(Tag.K_TRUE): 
@@ -266,12 +258,12 @@ class Parser:
             if next_token.isa(Tag.T_COMMA):
                 comma_count += 1
             elif next_token.isa(Tag.D_PAREN_L):
-                exprs.append(self.parse_tuple_expr([]))
+                exprs.append(self.parse_tuple_expr())
             
             next_token = self.lex()
-        
-        print(f"returns: {TupleExpr(t.loc(), exprs)}")
-        return TupleExpr(t.loc(), exprs)
+            
+        tuple_expr = TupleExpr(t.loc(), exprs)
+        return tuple_expr
         
         
     
